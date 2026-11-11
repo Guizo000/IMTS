@@ -1,0 +1,51 @@
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: Servidor/Dockerfile
+    image: proxy
+    volumes:
+      - ./Servidor/proxy.py:/app/main.py
+    ports:
+      - 5557:5557
+      - 5558:5558
+
+  broker:
+    build:
+      context: .
+      dockerfile: Servidor/Dockerfile
+    image: broker
+    volumes:
+      - ./Servidor/broker.py:/app/main.py
+    ports:
+      - 5555:5555
+      - 5556:5556
+
+  servidor:
+    build:
+      context: .
+      dockerfile: Servidor/Dockerfile
+    image: servidor
+    volumes:
+      - ./Servidor/servidor.py:/app/main.py
+      - ./Servidor/armazenamento.py:/app/armazenamento.py
+      - ./dados:/dados
+    depends_on:
+      - broker
+      - proxy
+    deploy:
+      replicas: 2
+
+  cliente:
+    build:
+      context: .
+      dockerfile: Cliente/Dockerfile
+    image: cliente
+    depends_on:
+      - servidor
+    environment:
+      - SERVIDOR_ENDERECO=tcp://broker:5555
+      - PROXY_SUB_ENDERECO=tcp://proxy:5558
+    deploy:
+      replicas: 1
+    

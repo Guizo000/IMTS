@@ -1,0 +1,33 @@
+# ---------- Visual Studio ----------
+.vs/
+*.user
+*.suo
+
+# ---------- .NET build output (Cliente) ----------
+bin/
+obj/
+
+# ---------- Runtime data ----------
+# SQLite files written by the servers through the ./dados volume
+/dados/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log
+
+# ---------- Python (Servidor) ----------
+__pycache__/
+*.py[cod]
+# generated from mensagem.proto inside the Docker image
+*_pb2.py
+
+# ---------- Secrets / local config ----------
+.env
+.env.*
+
+# ---------- Editors / OS ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

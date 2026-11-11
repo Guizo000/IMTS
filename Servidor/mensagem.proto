@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+message Envelope {
+    int64 timestamp_ms = 1;
+    oneof corpo {
+        Login login = 2;
+        Canal canal = 3;
+    }
+}
+
+message Login {
+    string usuario = 1;
+}
+
+message Canal {
+    message Post {
+        string canal = 1;
+        string mensagem = 2;
+    }
+
+    message Listar {}
+
+    oneof corpo {
+        string criar = 1;   
+        Listar listar = 2;   
+        Post post = 3;      
+    }
+}
+
+message Resposta {
+    int64 timestamp_ms = 1;
+    bool sucesso = 2;
+    string erro = 3;
+    repeated string canais = 4;
+}
+
