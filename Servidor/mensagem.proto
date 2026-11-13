@@ -1,10 +1,12 @@
 syntax = "proto3";
 
+// Comunicação entre Servidor e Cliente
 message Envelope {
     int64 timestamp_ms = 1;
+    int64 relogio = 2;         
     oneof corpo {
-        Login login = 2;
-        Canal canal = 3;
+        Login login = 3;
+        Canal canal = 4;
     }
 }
 
@@ -21,9 +23,9 @@ message Canal {
     message Listar {}
 
     oneof corpo {
-        string criar = 1;   
-        Listar listar = 2;   
-        Post post = 3;      
+        string criar = 1;
+        Listar listar = 2;
+        Post post = 3;
     }
 }
 
@@ -32,5 +34,32 @@ message Resposta {
     bool sucesso = 2;
     string erro = 3;
     repeated string canais = 4;
+    int64 relogio = 5;          
 }
 
+
+// Comunicação entre Servidor e Referencia
+
+message Servidor {
+    string nome = 1;
+    int32 rank = 2;
+}
+
+message ListarServidores {}
+
+message PedidoReferencia {
+    int64 timestamp_ms = 1;
+    oneof corpo {
+        string pedir_rank = 2;         // nome do servidor -> responde com o rank
+        ListarServidores listar = 3;   // responde com a lista de servidores ativos
+        string heartbeat = 4;          // nome do servidor -> responde OK + hora correta
+    }
+}
+
+message RespostaReferencia {
+    int64 timestamp_ms = 1;            // hora correta, segundo a referência
+    bool sucesso = 2;
+    string erro = 3;
+    int32 rank = 4;
+    repeated Servidor servidores = 5;
+}

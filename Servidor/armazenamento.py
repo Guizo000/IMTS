@@ -27,7 +27,7 @@ class Armazenamento:
     def registrar_login(self, usuario: str, ts: int) -> bool:
         with self.db:
             cur = self.db.execute(
-                "INSERT INTO logins VALUES (?, ?)", (usuario, ts))
+                "INSERT INTO logins (usuario, timestamp_ms) VALUES (?, ?)", (usuario, ts))
         return cur.rowcount == 1
 
     def criar_canal(self, nome: str, ts: int) -> bool:

@@ -12,7 +12,7 @@ const string SEP = "|";
 const int MIN_CANAIS = 5;          
 const int MAX_INSCRICOES = 3;     
 const int MSGS_POR_CANAL = 10;     
-const int INTERVALO_MS = 1000;     
+const int INTERVALO_MS = 1000;
 
 string endpoint = Environment.GetEnvironmentVariable("SERVIDOR_ENDERECO") ?? "tcp://broker:5555";
 string endpointSub = Environment.GetEnvironmentVariable("PROXY_SUB_ENDERECO") ?? "tcp://proxy:5558";
@@ -21,6 +21,30 @@ Console.WriteLine($"{usuario} entrando");
 
 using var socket = new RequestSocket();
 socket.Connect(endpoint);
+
+// --------//
+// Relógio //
+// --------//
+long relogio_logico = 0;
+object trava = new();
+
+long ProximoRelogio()
+{
+    lock (trava)
+    {
+        relogio_logico++;
+        return relogio_logico;
+    }
+}
+
+void AtualizarRelogio(long recebido)
+{
+    lock (trava)
+    {
+        relogio_logico = Math.Max(relogio_logico, recebido);
+        Console.WriteLine($"Relógio Lógico: {relogio_logico}");
+    }
+}
 
 // ------//
 // Login //
@@ -85,10 +109,10 @@ var receptor = new Thread(() =>
         long recebidoMs = Agora();
 
         var env = Envelope.Parser.ParseFrom(frames[1]);
+        AtualizarRelogio(env.Relogio);
         var post = env.Canal.Post;
 
-        Console.WriteLine(
-            $"[{post.Canal}] {post.Mensagem} | enviada: {Formatar(env.TimestampMs)} | recebida: {Formatar(recebidoMs)}");
+        //Console.WriteLine($"[{post.Canal}] {post.Mensagem} | enviada: {Formatar(env.TimestampMs)} | recebida: {Formatar(recebidoMs)}");
     }
 })
 { IsBackground = true };
@@ -142,10 +166,14 @@ static string Formatar(long timestampMs)
 Resposta Enviar(Envelope req, string nome = "Sem Nome")
 {
     //Console.WriteLine($"{Formatar(req.TimestampMs)} - Enviando requisição: {nome}");
+    req.Relogio = ProximoRelogio();
     socket.SendFrame(req.ToByteArray());
 
     byte[] bytes = socket.ReceiveFrameBytes();
-    return Resposta.Parser.ParseFrom(bytes);
+    Resposta res = Resposta.Parser.ParseFrom(bytes);
+
+    AtualizarRelogio(res.Relogio);
+    return res;
 }
 
 bool TratarResposta(Resposta res, string nome = "Sem Nome")
@@ -156,7 +184,7 @@ bool TratarResposta(Resposta res, string nome = "Sem Nome")
         return true;
     }
 
-    Console.WriteLine($"{Formatar(Agora())} - Resposta de {nome} recebida - Erro: {res.Erro}");
+    //Console.WriteLine($"{Formatar(Agora())} - Resposta de {nome} recebida - Erro: {res.Erro}");
     return false;
 }
 
