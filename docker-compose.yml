@@ -39,13 +39,16 @@ services:
     volumes:
       - ./Servidor/servidor.py:/app/main.py
       - ./Servidor/armazenamento.py:/app/armazenamento.py
+      - ./Servidor/modulos:/app/modulos
       - ./dados:/dados
+    expose:
+      - "6000"
     depends_on:
       - broker
       - proxy
       - referencia
     deploy:
-      replicas: 1
+      replicas: 4
 
   cliente:
     build:
@@ -58,5 +61,5 @@ services:
       - SERVIDOR_ENDERECO=tcp://broker:5555
       - PROXY_SUB_ENDERECO=tcp://proxy:5558
     deploy:
-      replicas: 1
+      replicas: 2
     

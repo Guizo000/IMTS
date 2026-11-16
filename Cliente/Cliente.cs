@@ -42,7 +42,7 @@ void AtualizarRelogio(long recebido)
     lock (trava)
     {
         relogio_logico = Math.Max(relogio_logico, recebido);
-        Console.WriteLine($"Relógio Lógico: {relogio_logico}");
+        //Console.WriteLine($"Relógio Lógico: {relogio_logico}");
     }
 }
 
