@@ -63,3 +63,41 @@ message RespostaReferencia {
     int32 rank = 4;
     repeated Servidor servidores = 5;
 }
+
+// Comunicação entre Servidores
+
+message PublicacaoCoordenador {
+    int64 timestamp_ms = 1;  
+    string mensagem = 2;
+    int64 relogio = 3;
+}
+
+message MensagemServidor {
+    int64 timestamp_ms = 1;
+    int64 relogio = 2;
+
+    oneof corpo {
+        RespostaServidor resposta = 3;
+        PedidoServidor pedido = 4;
+    }
+}
+
+message RespostaServidor {
+    oneof corpo {
+        RespostaHorario horario = 1;
+        Eleicao eleicao = 2;
+    }
+}
+
+message PedidoServidor {
+    oneof corpo {
+        PedidoHorario horario = 1;
+        Eleicao eleicao = 2;
+    }
+}
+
+message Eleicao {}
+
+message RespostaHorario {}
+
+message PedidoHorario {}
