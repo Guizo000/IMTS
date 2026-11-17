@@ -27,7 +27,9 @@ def pedir_servidores():
 
 
 def enviar_heartbeat():
-    print(f"{formatar(agora())} Enviando mensagem de Heartbeat", flush=True)
+    print(f"{formatar(agora())} Servidor: {estado.ID_REPLICA} Enviando mensagem de Heartbeat - Rank: {estado.rank}", flush=True)
+    print(f"{formatar(agora())} Servidor: {estado.ID_REPLICA} - Coordenador Atual: {estado.coordenador_atual}", flush=True)
+    
     pedido = mensagem_pb2.PedidoReferencia()
     pedido.heartbeat = estado.ID_REPLICA
     res = _trocar(pedido)
@@ -35,4 +37,4 @@ def enviar_heartbeat():
     if not res.sucesso:
         res = pedir_rank()
         estado.rank = res.rank
-        print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} Pegando Rank por Erro no Heartbeat - Rank: {estado.rank}", flush=True)
+        print(f"{formatar(agora())} Servidor: {estado.ID_REPLICA} Pegando Rank por Erro no Heartbeat - Rank: {estado.rank}", flush=True)

@@ -7,7 +7,10 @@ socket.bind("tcp://*:5559")
 #Informações dos servidores
 rank = 1
 servidores = {}
+ranks = {}   # nome -> rank, para quem cair recuperar rank ao voltar
 tempo_maximo_heartbeat = 30 * 1000  # 30 segundos
+HEARTBEATS_PARA_IMPRIMIR = 4       
+heartbeats_recebidos = 0
 
 def remover_inativos():
     global servidores
@@ -16,6 +19,8 @@ def remover_inativos():
     servidores = {n: i for n, i in servidores.items()
                   if agora - i["last_heartbeat"] <= tempo_maximo_heartbeat}
 
+
+def imprimir_ativos():
     # Imprime todos os servidores em um único print
     if servidores:
         print("Servidores ativos:\n" + "\n".join(
@@ -35,11 +40,11 @@ def pedir_rank(pedido):
     nome = pedido.pedir_rank
     agora = int(time.time() * 1000)
 
-    if nome not in servidores:
-        servidores[nome] = {"rank": rank, "last_heartbeat": agora}
+    if nome not in ranks:          # primeira vez que vê esse nome: rank novo
+        ranks[nome] = rank
         rank += 1
-    else:
-        servidores[nome]["last_heartbeat"] = agora     
+
+    servidores[nome] = {"rank": ranks[nome], "last_heartbeat": agora}
 
     res = mensagem_pb2.RespostaReferencia()
     res.sucesso = True
@@ -62,9 +67,11 @@ def listar_servidores():
 
 
 def heartbeat(pedido):
-    global servidores
+    global servidores, heartbeats_recebidos
 
     remover_inativos()
+
+    heartbeats_recebidos += 1
 
     nome = pedido.heartbeat
     agora = int(time.time() * 1000)
@@ -77,6 +84,9 @@ def heartbeat(pedido):
         res.sucesso = False
         res.erro = "Servidor não registrado"
         print(f"Erro no heartbeat", flush=True)
+
+    if heartbeats_recebidos % HEARTBEATS_PARA_IMPRIMIR == 0:
+        imprimir_ativos()
 
     return res
 
@@ -98,5 +108,4 @@ while True:
         pass
 
     res.timestamp_ms = int(time.time() * 1000) 
-    socket.send(res.SerializeToString()) 
-    
+    socket.send(res.SerializeToString())

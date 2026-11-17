@@ -10,6 +10,7 @@ ID_REPLICA = os.environ.get("SERVER_ID", sock.gethostname())
 PORTA_SERVIDORES = 6000
 SEP = '|'
 CANAL_SERVERS = "servers"
+CANAL_REPLICACAO = "replicacao" #
 MENSAGENS_HEARTBEAT = 10
 MENSAGENS_RELOGIO_FISICO = 15
 
@@ -34,6 +35,7 @@ pub.connect("tcp://proxy:5557")
 sub = context.socket(zmq.SUB)
 sub.connect("tcp://proxy:5558")
 sub.setsockopt_string(zmq.SUBSCRIBE, f"{CANAL_SERVERS}{SEP}")
+sub.setsockopt_string(zmq.SUBSCRIBE, f"{CANAL_REPLICACAO}{SEP}") #
 
 poller = zmq.Poller()
 poller.register(socket_clientes, zmq.POLLIN)

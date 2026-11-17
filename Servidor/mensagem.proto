@@ -72,6 +72,40 @@ message PublicacaoCoordenador {
     int64 relogio = 3;
 }
 
+message RegistroLogin { //
+    string usuario = 1; //
+    int64 timestamp_ms = 2; //
+} //
+
+message RegistroCanal { //
+    string nome = 1; //
+    int64 timestamp_ms = 2; //
+} //
+
+message RegistroMensagem { //
+    string canal = 1; //
+    string texto = 2; //
+    int64 timestamp_ms = 3; //
+} //
+
+message Replicacao { //
+    string origem_servidor = 1; //
+    int64 relogio = 2; //
+    oneof operacao { //
+        RegistroLogin login = 3; //
+        RegistroCanal canal = 4; //
+        RegistroMensagem mensagem = 5; //
+    } //
+} //
+
+message SincronizarEstado {} //
+
+message EstadoCompleto { //
+    repeated RegistroLogin logins = 1; //
+    repeated RegistroCanal canais = 2; //
+    repeated RegistroMensagem mensagens = 3; //
+} //
+
 message MensagemServidor {
     int64 timestamp_ms = 1;
     int64 relogio = 2;
@@ -86,6 +120,7 @@ message RespostaServidor {
     oneof corpo {
         RespostaHorario horario = 1;
         Eleicao eleicao = 2;
+        EstadoCompleto estado_completo = 3; //
     }
 }
 
@@ -93,6 +128,7 @@ message PedidoServidor {
     oneof corpo {
         PedidoHorario horario = 1;
         Eleicao eleicao = 2;
+        SincronizarEstado sincronizar = 3; //
     }
 }
 

@@ -1,7 +1,13 @@
 from modulos import estado
 from modulos.relogio import agora, formatar, atualizar_relogio_logico, atualizar_relogio_fisico
 from modulos.referencia_cliente import pedir_rank, enviar_heartbeat
-from modulos.eleicao import pedir_eleicao, pedir_horario_coordenador, tratar_servidor, tratar_mensagem_publicada
+from modulos.eleicao import ( #
+    pedir_eleicao, #
+    pedir_horario_coordenador, #
+    sincronizar_com_cluster, #
+    tratar_servidor, #
+    tratar_mensagem_publicada, #
+) #
 from modulos.clientes import tratar_cliente
 
 contador_heartbeat = 0
@@ -11,9 +17,12 @@ contador_relogio_fisico = 0
 contador_relogio_fisico += 1
 estado.rank = pedir_rank().rank
 
+## SINCRONIZANDO ESTADO COM RÉPLICAS ATIVAS #
+sincronizar_com_cluster() #
+
 ## ELEIÇÃO AO ENTRAR NO SISTEMA
 contador_relogio_fisico += 1
-print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} entrando e pedindo eleição - Rank: {estado.rank}", flush=True)
+print(f"{formatar(agora())} Servidor: {estado.ID_REPLICA} entrando e pedindo eleição - Rank: {estado.rank}", flush=True)
 pedir_eleicao()
 
 while True:
