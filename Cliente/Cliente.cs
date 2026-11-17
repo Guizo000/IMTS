@@ -184,7 +184,7 @@ bool TratarResposta(Resposta res, string nome = "Sem Nome")
         return true;
     }
 
-    //Console.WriteLine($"{Formatar(Agora())} - Resposta de {nome} recebida - Erro: {res.Erro}");
+    Console.WriteLine($"{Formatar(Agora())} - Resposta de {nome} recebida - Erro: {res.Erro}");
     return false;
 }
 
