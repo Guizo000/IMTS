@@ -68,8 +68,9 @@ message RespostaReferencia {
 
 message PublicacaoCoordenador {
     int64 timestamp_ms = 1;  
-    string mensagem = 2;
+    string mensagem = 2;        // nome do servidor eleito
     int64 relogio = 3;
+    int32 rank = 4;             // rank do eleito (quem tiver rank maior pede nova eleicao)
 }
 
 message RegistroLogin { //

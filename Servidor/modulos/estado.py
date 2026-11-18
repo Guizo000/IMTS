@@ -47,3 +47,5 @@ relogio_logico = 0
 relogio_fisico_offset = 0
 rank = None
 coordenador_atual = None
+eleicao_pendente = False        # alguem pediu eleicao (ou anunciou coordenador com rank menor)
+aguardando_anuncio_ate = None   # recebi OK de um maior, espero o anuncio ate esse horario

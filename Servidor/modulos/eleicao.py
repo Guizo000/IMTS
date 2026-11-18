@@ -7,34 +7,60 @@ from modulos import estado
 from modulos.relogio import agora, avancar_relogio_logico, atualizar_relogio_logico, enviar, formatar
 from modulos.referencia_cliente import pedir_servidores
 
+TIMEOUT_MS = 2000
+ESPERA_ANUNCIO_MS = 3 * TIMEOUT_MS   # tempo esperando o anuncio depois que um servidor maior respondeu OK
 
-def _novo_req(timeout_ms=3000):
+
+def _novo_req():
     req = estado.context.socket(zmq.REQ)
     req.setsockopt(zmq.LINGER, 0)
-    req.setsockopt(zmq.SNDTIMEO, timeout_ms)
-    req.setsockopt(zmq.RCVTIMEO, timeout_ms)
+    req.setsockopt(zmq.SNDTIMEO, TIMEOUT_MS)
     return req
 
 
-## Lado que pergunta
-def pedir_horario_coordenador():
-    if estado.coordenador_atual is None:     
-        return None
+def _esperar_resposta(req, timeout_ms=TIMEOUT_MS):
+    # Espera a resposta de outro servidor SEM parar de atender os pedidos que
+    # chegam no socket_servidores.
+    poller = zmq.Poller()
+    poller.register(req, zmq.POLLIN)
+    poller.register(estado.socket_servidores, zmq.POLLIN)
 
+    limite = time.time() + timeout_ms / 1000
+    while True:
+        restante = int((limite - time.time()) * 1000)
+        if restante <= 0:
+            return None
+
+        eventos = dict(poller.poll(restante))
+        if estado.socket_servidores in eventos:
+            tratar_servidor()
+        if req in eventos:
+            res = mensagem_pb2.MensagemServidor()
+            res.ParseFromString(req.recv())
+            atualizar_relogio_logico(res.relogio)
+            return res
+
+
+def _pedir(nome_servidor, pedido):
     req = _novo_req()
-    pedido = mensagem_pb2.MensagemServidor()
-    pedido.pedido.horario.SetInParent()
-
     try:
-        req.connect(f"tcp://{estado.coordenador_atual}:{estado.PORTA_SERVIDORES}")
+        req.connect(f"tcp://{nome_servidor}:{estado.PORTA_SERVIDORES}")
         enviar(pedido, req)
-        res = mensagem_pb2.MensagemServidor()
-        res.ParseFromString(req.recv())
-        return res
+        return _esperar_resposta(req)
     except zmq.ZMQError:
         return None
     finally:
         req.close()
+
+
+## Lado que pergunta
+def pedir_horario_coordenador():
+    if estado.coordenador_atual is None:
+        return None
+
+    pedido = mensagem_pb2.MensagemServidor()
+    pedido.pedido.horario.SetInParent()
+    return _pedir(estado.coordenador_atual, pedido)
 
 
 def sincronizar_com_cluster(): #
@@ -44,34 +70,24 @@ def sincronizar_com_cluster(): #
         if servidor.nome == estado.ID_REPLICA: #
             continue #
 
-        req = _novo_req() #
         pedido = mensagem_pb2.MensagemServidor() #
         pedido.pedido.sincronizar.SetInParent() #
-
-        try: #
-            req.connect(f"tcp://{servidor.nome}:{estado.PORTA_SERVIDORES}") #
-            enviar(pedido, req) #
-
-            resposta = mensagem_pb2.MensagemServidor() #
-            resposta.ParseFromString(req.recv()) #
-            atualizar_relogio_logico(resposta.relogio) #
-
-            if resposta.WhichOneof("corpo") == "resposta" and resposta.resposta.WhichOneof("corpo") == "estado_completo": #
-                ec = resposta.resposta.estado_completo #
-                logins = [(l.usuario, l.timestamp_ms) for l in ec.logins] #
-                canais = [(c.nome, c.timestamp_ms) for c in ec.canais] #
-                mensagens = [(m.canal, m.texto, m.timestamp_ms) for m in ec.mensagens] #
-                estado.dados.importar_tudo(logins, canais, mensagens) #
-                print( #
-                    f"{formatar(agora())} Servidor {estado.ID_REPLICA} sincronizou estado com {servidor.nome} " #
-                    f"({len(canais)} canais, {len(mensagens)} msgs)", #
-                    flush=True #
-                ) #
-                return True #
-        except zmq.ZMQError: #
+        resposta = _pedir(servidor.nome, pedido) #
+        if resposta is None: #
             continue #
-        finally: #
-            req.close() #
+
+        if resposta.WhichOneof("corpo") == "resposta" and resposta.resposta.WhichOneof("corpo") == "estado_completo": #
+            ec = resposta.resposta.estado_completo #
+            logins = [(l.usuario, l.timestamp_ms) for l in ec.logins] #
+            canais = [(c.nome, c.timestamp_ms) for c in ec.canais] #
+            mensagens = [(m.canal, m.texto, m.timestamp_ms) for m in ec.mensagens] #
+            estado.dados.importar_tudo(logins, canais, mensagens) #
+            print( #
+                f"{formatar(agora())} Servidor {estado.ID_REPLICA} sincronizou estado com {servidor.nome} " #
+                f"({len(canais)} canais, {len(mensagens)} msgs)", #
+                flush=True #
+            ) #
+            return True #
 
     return False #
 
@@ -80,37 +96,35 @@ def anunciar_coordenador():
     publicacao = mensagem_pb2.PublicacaoCoordenador()
     publicacao.relogio = avancar_relogio_logico()
     publicacao.mensagem = estado.ID_REPLICA
+    publicacao.rank = estado.rank
     publicacao.timestamp_ms = agora()
     estado.pub.send_multipart([f"{estado.CANAL_SERVERS}{estado.SEP}".encode(), publicacao.SerializeToString()])
 
 
 def pedir_eleicao():
+    estado.eleicao_pendente = False
     servidores = pedir_servidores().servidores
+    # pergunta primeiro pro maior rank, que e quem deve ganhar
+    maiores = sorted((s for s in servidores if s.nome != estado.ID_REPLICA and s.rank > estado.rank),
+                     key=lambda s: s.rank, reverse=True)
 
-    for servidor in servidores:
-        if servidor.nome != estado.ID_REPLICA and servidor.rank > estado.rank:
-            req = _novo_req()
-            pedido = mensagem_pb2.MensagemServidor()
-            pedido.pedido.eleicao.SetInParent()
+    for servidor in maiores:
+        pedido = mensagem_pb2.MensagemServidor()
+        pedido.pedido.eleicao.SetInParent()
 
-            try:
-                req.connect(f"tcp://{servidor.nome}:{estado.PORTA_SERVIDORES}")
-                enviar(pedido, req)
+        resposta = _pedir(servidor.nome, pedido)
+        if resposta is not None:
+            # tem servidor maior vivo: ele assume a eleicao e eu espero o anuncio
+            estado.coordenador_atual = None
+            estado.aguardando_anuncio_ate = agora() + ESPERA_ANUNCIO_MS
+            return
 
-                resposta = mensagem_pb2.MensagemServidor()
-                resposta.ParseFromString(req.recv())
-                atualizar_relogio_logico(resposta.relogio)
-                estado.coordenador_atual = None
-                break
-            except zmq.ZMQError:
-                continue
-            finally:
-                req.close()
-    else:
-        estado.coordenador_atual = estado.ID_REPLICA
-        time.sleep(0.5)
-        print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} eleito coordenador - Publicando aviso - Rank: {estado.rank}", flush=True)
-        anunciar_coordenador()
+    estado.coordenador_atual = estado.ID_REPLICA
+    estado.aguardando_anuncio_ate = None
+    print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} eleito coordenador - Publicando aviso - Rank: {estado.rank}", flush=True)
+    anunciar_coordenador()
+    # quem pediu eleicao enquanto eu fazia a minha ja vai receber esse anuncio
+    estado.eleicao_pendente = False
 
 
 ## Lado que responde
@@ -143,7 +157,9 @@ def tratar_servidor():
     enviar(res, estado.socket_servidores)
 
     if tipo_pedido == "eleicao":
-        pedir_eleicao()
+        # nao chama pedir_eleicao() aqui dentro (ficava recursivo e travava o
+        # servidor). So marca e o loop principal faz a eleicao logo em seguida.
+        estado.eleicao_pendente = True
 
 
 def _aplicar_replicacao(payload: bytes): #
@@ -170,10 +186,15 @@ def tratar_mensagem_publicada():
     if topico.startswith(f"{estado.CANAL_SERVERS}{estado.SEP}"): #
         publicacao = mensagem_pb2.PublicacaoCoordenador()
         publicacao.ParseFromString(mensagem)
+        atualizar_relogio_logico(publicacao.relogio)
 
         estado.coordenador_atual = publicacao.mensagem
+        estado.aguardando_anuncio_ate = None
         print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} recebeu publicação de novo coordenador: {estado.coordenador_atual}", flush=True)
-        atualizar_relogio_logico(publicacao.relogio)
+
+        # valentao: se quem se anunciou tem rank menor que o meu, eu tomo o lugar
+        if publicacao.mensagem != estado.ID_REPLICA and publicacao.rank < estado.rank:
+            estado.eleicao_pendente = True
 
     elif topico.startswith(f"{estado.CANAL_REPLICACAO}{estado.SEP}"): #
         _aplicar_replicacao(mensagem) #
