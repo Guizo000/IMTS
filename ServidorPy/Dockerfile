@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN pip install pyzmq protobuf grpcio-tools
 
-COPY Servidor/mensagem.proto .
+COPY ServidorPy/mensagem.proto .
 
 RUN python -m grpc_tools.protoc -I. --python_out=. mensagem.proto
 

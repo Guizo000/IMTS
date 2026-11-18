@@ -49,3 +49,6 @@ rank = None
 coordenador_atual = None
 eleicao_pendente = False        # alguem pediu eleicao (ou anunciou coordenador com rank menor)
 aguardando_anuncio_ate = None   # recebi OK de um maior, espero o anuncio ate esse horario
+
+# Atraso simulado
+atraso_relogio_fisico = 5000

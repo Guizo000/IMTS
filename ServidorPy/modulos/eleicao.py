@@ -63,33 +63,33 @@ def pedir_horario_coordenador():
     return _pedir(estado.coordenador_atual, pedido)
 
 
-def sincronizar_com_cluster(): #
-    servidores = pedir_servidores().servidores #
+def sincronizar_com_cluster(): 
+    servidores = pedir_servidores().servidores 
 
-    for servidor in servidores: #
-        if servidor.nome == estado.ID_REPLICA: #
+    for servidor in servidores: 
+        if servidor.nome == estado.ID_REPLICA: 
+            continue 
+
+        pedido = mensagem_pb2.MensagemServidor() 
+        pedido.pedido.sincronizar.SetInParent() 
+        resposta = _pedir(servidor.nome, pedido) 
+        if resposta is None: 
             continue #
 
-        pedido = mensagem_pb2.MensagemServidor() #
-        pedido.pedido.sincronizar.SetInParent() #
-        resposta = _pedir(servidor.nome, pedido) #
-        if resposta is None: #
-            continue #
+        if resposta.WhichOneof("corpo") == "resposta" and resposta.resposta.WhichOneof("corpo") == "estado_completo": 
+            ec = resposta.resposta.estado_completo 
+            logins = [(l.usuario, l.timestamp_ms) for l in ec.logins] 
+            canais = [(c.nome, c.timestamp_ms) for c in ec.canais] 
+            mensagens = [(m.canal, m.texto, m.timestamp_ms) for m in ec.mensagens] 
+            estado.dados.importar_tudo(logins, canais, mensagens) 
+            print( 
+                f"{formatar(agora())} Servidor {estado.ID_REPLICA} sincronizou estado com {servidor.nome} " 
+                f"({len(canais)} canais, {len(mensagens)} msgs)", 
+                flush=True 
+            ) 
+            return True 
 
-        if resposta.WhichOneof("corpo") == "resposta" and resposta.resposta.WhichOneof("corpo") == "estado_completo": #
-            ec = resposta.resposta.estado_completo #
-            logins = [(l.usuario, l.timestamp_ms) for l in ec.logins] #
-            canais = [(c.nome, c.timestamp_ms) for c in ec.canais] #
-            mensagens = [(m.canal, m.texto, m.timestamp_ms) for m in ec.mensagens] #
-            estado.dados.importar_tudo(logins, canais, mensagens) #
-            print( #
-                f"{formatar(agora())} Servidor {estado.ID_REPLICA} sincronizou estado com {servidor.nome} " #
-                f"({len(canais)} canais, {len(mensagens)} msgs)", #
-                flush=True #
-            ) #
-            return True #
-
-    return False #
+    return False 
 
 
 def anunciar_coordenador():

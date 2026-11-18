@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import zmq
 import mensagem_pb2
 
-## Configuração (mesmos valores do cliente em C#)
+## Configuração 
 SEP = '|'
 MIN_CANAIS = 5
 MAX_INSCRICOES = 3
@@ -19,7 +19,7 @@ ENDERECO_SUB = os.environ.get("PROXY_SUB_ENDERECO", "tcp://proxy:5558")
 
 usuario = f"pybot-{random.randint(0, 4999)}"
 
-## Relógio lógico (Lamport)
+## Relógio lógico 
 relogio_logico = 0
 trava = threading.Lock()
 

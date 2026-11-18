@@ -16,7 +16,7 @@ const int INTERVALO_MS = 1000;
 
 string endpoint = Environment.GetEnvironmentVariable("SERVIDOR_ENDERECO") ?? "tcp://broker:5555";
 string endpointSub = Environment.GetEnvironmentVariable("PROXY_SUB_ENDERECO") ?? "tcp://proxy:5558";
-string usuario = $"bot-{rnd.Next(5000)}";
+string usuario = $"csbot-{rnd.Next(5000)}";
 Console.WriteLine($"{usuario} entrando");
 
 using var socket = new RequestSocket();

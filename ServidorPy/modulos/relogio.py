@@ -10,11 +10,12 @@ def formatar(timestamp_ms):
 
 
 def agora():
-    return int(time.time() * 1000) + estado.relogio_fisico_offset
+    return int(time.time() * 1000) + estado.atraso_relogio_fisico + estado.relogio_fisico_offset 
 
 
 def atualizar_relogio_fisico(timestamp_ms):
-    estado.relogio_fisico_offset = timestamp_ms - int(time.time() * 1000)
+    estado.relogio_fisico_offset = timestamp_ms - (int(time.time() * 1000) + estado.atraso_relogio_fisico)
+    print(f"{formatar(agora())} Servidor {estado.ID_REPLICA} atualizando seu relógio físico", flush=True)
 
 
 def avancar_relogio_logico():

@@ -5,4 +5,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="ClienteCs/Cliente.csproj" />
+  <Project Path="ServidorCS/ServidorCS.csproj" />
 </Solution>
