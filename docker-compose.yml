@@ -50,10 +50,10 @@ services:
     deploy:
       replicas: 4
 
-  cliente:
+  clientecs:
     build:
       context: .
-      dockerfile: Cliente/Dockerfile
+      dockerfile: ClienteCs/Dockerfile
     image: cliente
     depends_on:
       - servidor
@@ -61,5 +61,18 @@ services:
       - SERVIDOR_ENDERECO=tcp://broker:5555
       - PROXY_SUB_ENDERECO=tcp://proxy:5558
     deploy:
-      replicas: 2
+      replicas: 1
+  
+  clientepy:
+    build:
+      context: .
+      dockerfile: ClientePy/Dockerfile
+    image: clientepy
+    depends_on:
+      - servidor
+    environment:
+      - SERVIDOR_ENDERECO=tcp://broker:5555
+      - PROXY_SUB_ENDERECO=tcp://proxy:5558
+    deploy:
+      replicas: 1
     

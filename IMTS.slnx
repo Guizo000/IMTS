@@ -4,5 +4,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Cliente/Cliente.csproj" />
+  <Project Path="ClienteCs/Cliente.csproj" />
 </Solution>

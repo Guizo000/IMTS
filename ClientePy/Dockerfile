@@ -1,0 +1,13 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN pip install pyzmq protobuf grpcio-tools
+
+COPY ClientePy/mensagem.proto .
+
+RUN python -m grpc_tools.protoc -I. --python_out=. mensagem.proto
+
+COPY ClientePy/cliente.py .
+
+CMD ["python", "-u", "cliente.py"]
