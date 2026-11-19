@@ -139,51 +139,49 @@ def tratar_servidor():
     if mensagem.WhichOneof("corpo") == "pedido":
         tipo_pedido = mensagem.pedido.WhichOneof("corpo")
 
-    res = mensagem_pb2.MensagemServidor()   # REP exige sempre uma resposta
+    res = mensagem_pb2.MensagemServidor()  
     if tipo_pedido == "horario":
         res.resposta.horario.SetInParent()
     elif tipo_pedido == "eleicao":
         res.resposta.eleicao.SetInParent()
-    elif tipo_pedido == "sincronizar": #
-        dump = estado.dados.exportar_tudo() #
-        ec = res.resposta.estado_completo #
-        for usuario, ts in dump["logins"]: #
-            ec.logins.add(usuario=usuario, timestamp_ms=ts) #
-        for nome, ts in dump["canais"]: #
-            ec.canais.add(nome=nome, timestamp_ms=ts) #
-        for canal, texto, ts in dump["mensagens"]: #
-            ec.mensagens.add(canal=canal, texto=texto, timestamp_ms=ts) #
+    elif tipo_pedido == "sincronizar": 
+        dump = estado.dados.exportar_tudo() 
+        ec = res.resposta.estado_completo 
+        for usuario, ts in dump["logins"]: 
+            ec.logins.add(usuario=usuario, timestamp_ms=ts) 
+        for nome, ts in dump["canais"]: 
+            ec.canais.add(nome=nome, timestamp_ms=ts) 
+        for canal, texto, ts in dump["mensagens"]: 
+            ec.mensagens.add(canal=canal, texto=texto, timestamp_ms=ts) 
 
     enviar(res, estado.socket_servidores)
 
     if tipo_pedido == "eleicao":
-        # nao chama pedir_eleicao() aqui dentro (ficava recursivo e travava o
-        # servidor). So marca e o loop principal faz a eleicao logo em seguida.
         estado.eleicao_pendente = True
 
 
-def _aplicar_replicacao(payload: bytes): #
-    rep = mensagem_pb2.Replicacao() #
-    rep.ParseFromString(payload) #
-    atualizar_relogio_logico(rep.relogio) #
+def _aplicar_replicacao(payload: bytes): 
+    rep = mensagem_pb2.Replicacao() 
+    rep.ParseFromString(payload) 
+    atualizar_relogio_logico(rep.relogio) 
 
-    if rep.origem_servidor == estado.ID_REPLICA: #
-        return #
+    if rep.origem_servidor == estado.ID_REPLICA: 
+        return 
 
-    op = rep.WhichOneof("operacao") #
-    if op == "login": #
-        estado.dados.registrar_login(rep.login.usuario, rep.login.timestamp_ms) #
-    elif op == "canal": #
-        estado.dados.criar_canal(rep.canal.nome, rep.canal.timestamp_ms) #
-    elif op == "mensagem": #
-        estado.dados.postar(rep.mensagem.canal, rep.mensagem.texto, rep.mensagem.timestamp_ms) #
+    op = rep.WhichOneof("operacao") 
+    if op == "login": 
+        estado.dados.registrar_login(rep.login.usuario, rep.login.timestamp_ms) 
+    elif op == "canal": 
+        estado.dados.criar_canal(rep.canal.nome, rep.canal.timestamp_ms) 
+    elif op == "mensagem": 
+        estado.dados.postar(rep.mensagem.canal, rep.mensagem.texto, rep.mensagem.timestamp_ms) 
 
 
 def tratar_mensagem_publicada():
-    topico_bytes, mensagem = estado.sub.recv_multipart() #
-    topico = topico_bytes.decode() #
+    topico_bytes, mensagem = estado.sub.recv_multipart() 
+    topico = topico_bytes.decode() 
 
-    if topico.startswith(f"{estado.CANAL_SERVERS}{estado.SEP}"): #
+    if topico.startswith(f"{estado.CANAL_SERVERS}{estado.SEP}"): 
         publicacao = mensagem_pb2.PublicacaoCoordenador()
         publicacao.ParseFromString(mensagem)
         atualizar_relogio_logico(publicacao.relogio)
@@ -196,5 +194,5 @@ def tratar_mensagem_publicada():
         if publicacao.mensagem != estado.ID_REPLICA and publicacao.rank < estado.rank:
             estado.eleicao_pendente = True
 
-    elif topico.startswith(f"{estado.CANAL_REPLICACAO}{estado.SEP}"): #
-        _aplicar_replicacao(mensagem) #
+    elif topico.startswith(f"{estado.CANAL_REPLICACAO}{estado.SEP}"): 
+        _aplicar_replicacao(mensagem) 

@@ -1,10 +1,9 @@
 using System.Net;
 
 // -------------------------------------------------------------------------//
-// Estado compartilhado do servidor em C#.                                   //
-// Diferente do servidor em Python (que faz tudo num loop so com poller),    //
-// aqui cada socket fica numa thread propria, entao o estado que e mexido    //
-// por mais de uma thread fica protegido por lock.                           //
+// Estado compartilhado do servidor em C#.                                  //
+// Aqui cada socket fica numa thread propria, entao o estado que e mexido   //
+// por mais de uma thread fica protegido por lock.                          //
 // -------------------------------------------------------------------------//
 static class Estado
 {
@@ -78,7 +77,6 @@ static class Log
 {
     static readonly object trava = new();
 
-    // mesmo formato dos prints do servidor em Python
     public static void Escrever(string texto, bool doisPontos = false)
     {
         lock (trava)

@@ -1,11 +1,8 @@
 using Microsoft.Data.Sqlite;
 
 // -------------------------------------------------------------------------//
-// Armazenamento do servidor em C#, em SQLite (mesmas tabelas e regras do    //
-// armazenamento.py do servidor Python). Cada servidor tem o seu arquivo     //
-// /dados/<servidor>.db.                                                     //
-// A conexao e usada por mais de uma thread, entao todo acesso passa por    //
-// lock.                                                                     //
+// Armazenamento do servidor em SQLite. A conexão é usada por mais de uma   //                                                   
+// então todo acesso passa por lock                                         //
 // -------------------------------------------------------------------------//
 record LoginSalvo(string Usuario, long TimestampMs);
 record CanalSalvo(string Nome, long TimestampMs);
@@ -104,7 +101,7 @@ class Armazenamento
         lock (trava)
         {
             Executar("BEGIN");
-            InserirCanal(canal, ts);   // igual ao Python: se o canal nao existir, cria
+            InserirCanal(canal, ts);   
             bool nova = InserirMensagem(canal, texto, ts);
             Executar("COMMIT");
             return nova;
